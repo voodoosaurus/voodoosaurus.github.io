@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>thoughts — voodoosaurus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Unbounded:wght@200;300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0c0a12;
+    --bg2:        #131020;
+    --border:     rgba(160, 100, 220, 0.1);
+    --purple:     #9b6dff;
+    --purple-dim: #6a3fcf;
+    --plum:       #2a1a3e;
+    --text:       #ede8f7;
+    --text-dim:   #8a7faa;
+    --text-faint: #3d3460;
+    --accent:     #c084fc;
+    --warm:       #e8c4a0;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* noise */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.5;
+  }
+
+  /* warm ambient — slightly different from index */
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -10vh; left: 30%;
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, rgba(90, 40, 140, 0.1) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.4rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(12, 10, 18, 0.8);
+    backdrop-filter: blur(14px);
+  }
+  .wordmark {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 200;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .wordmark span { color: var(--purple); }
+  nav ul { list-style: none; display: flex; gap: 2.5rem; }
+  nav ul a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  nav ul a:hover { color: var(--accent); }
+  nav ul a.active { color: var(--accent); }
+
+  /* ── PAGE WRAPPER ── */
+  .page {
+    position: relative; z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 0.5rem;
+    height: 100vh;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    margin-bottom: 1.2rem;
+    opacity: 0;
+    transform: translateY(18px);
+    animation: fadeUp 0.7s ease 0.1s forwards;
+  }
+  .page-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--purple);
+    margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: 0.7rem;
+  }
+  .page-label::after {
+    content: '';
+    flex: 1; max-width: 60px;
+    height: 1px;
+    background: var(--purple-dim);
+    opacity: 0.5;
+  }
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .page-note {
+    font-size: 0.68rem;
+    color: var(--text-faint);
+    line-height: 1.8;
+    max-width: 42ch;
+  }
+
+  /* ── POST LIST ── */
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── SINGLE POST ENTRY ── */
+  .post-entry {
+    opacity: 0;
+    transform: translateY(14px);
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  .post-link {
+    display: block;
+    text-decoration: none;
+    padding: 2.8rem 0;
+    border-top: 1px solid var(--border);
+    transition: background 0.3s;
+    position: relative;
+  }
+  .post-link::before {
+    content: '';
+    position: absolute;
+    left: -2rem; top: 0; bottom: 0; width: 2px;
+    background: var(--purple);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .post-link:hover::before { opacity: 1; }
+
+  .post-mood {
+    display: flex; align-items: center; gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+  .mood-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .mood-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  /* mood colors */
+  .mood--tender   .mood-dot { background: #f4a0c0; box-shadow: 0 0 5px #f4a0c0; }
+  .mood--tender   .mood-label { color: #f4a0c0; }
+  .mood--difficult .mood-dot { background: #a07af4; box-shadow: 0 0 5px #a07af4; }
+  .mood--difficult .mood-label { color: #a07af4; }
+  .mood--unresolved .mood-dot { background: #f4d07a; box-shadow: 0 0 5px #f4d07a; }
+  .mood--unresolved .mood-label { color: #f4d07a; }
+  .mood--quiet   .mood-dot { background: #7ac8f4; box-shadow: 0 0 5px #7ac8f4; }
+  .mood--quiet   .mood-label { color: #7ac8f4; }
+
+  .post-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.4rem, 3vw, 1.85rem);
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 0.9rem;
+    transition: color 0.25s;
+  }
+  .post-link:hover .post-title { color: var(--accent); }
+  .post-title em { font-style: italic; }
+
+  .post-excerpt {
+    font-size: 0.69rem;
+    line-height: 1.9;
+    color: var(--text-dim);
+    max-width: 52ch;
+    margin-bottom: 1.4rem;
+  }
+
+  .post-footer {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .post-date {
+    font-size: 0.6rem;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+  }
+  .post-arrow {
+    font-size: 0.75rem;
+    color: var(--purple-dim);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .post-link:hover .post-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* end cap */
+  .list-end {
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.6rem;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.5s forwards;
+  }
+
+  /* ── SINGLE POST VIEW ── */
+  .post-single {
+    display: none;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards;
+  }
+  .post-single.active { display: block; }
+
+  .post-single-back {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    text-decoration: none;
+    margin-bottom: 4rem;
+    transition: color 0.2s;
+    cursor: pointer;
+    background: none; border: none;
+  }
+  .post-single-back:hover { color: var(--accent); }
+
+  .post-single-mood {
+    display: flex; align-items: center; gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .post-single-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .post-single-title em { font-style: italic; color: var(--accent); }
+
+  .post-single-date {
+    font-size: 0.6rem;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    margin-bottom: 4rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .post-body {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.05rem, 2vw, 1.2rem);
+    line-height: 2;
+    color: var(--text);
+  }
+  .post-body p { margin-bottom: 1.8em; }
+  .post-body em { font-style: italic; color: var(--accent); }
+  .post-body strong { font-weight: 400; color: var(--warm); }
+
+  .post-end-mark {
+    margin-top: 5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  .post-resource {
+    margin-top: 2.5rem;
+    font-size: 0.68rem;
+    line-height: 2;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .post-resource a {
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.2s;
+  }
+  .post-resource a:hover { color: var(--accent); }
+
+  /* ── TRIGGER WARNING — list view tag ── */
+  .tw-inline {
+    display: flex; align-items: baseline; gap: 0.5rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-top: 1rem;
+  }
+  .tw-inline-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .tw-inline-items {
+    color: var(--text-dim);
+  }
+
+  /* ── TRIGGER WARNING GATE ── */
+  .tw-gate {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10, 8, 16, 0.97);
+    backdrop-filter: blur(10px);
+    align-items: center; justify-content: center;
+  }
+  .tw-gate.open { display: flex; }
+
+  .tw-gate-inner {
+    max-width: 460px;
+    padding: 0 2rem;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: fadeUp 0.5s ease 0.1s forwards;
+  }
+  .tw-gate-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+  }
+  .tw-gate-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    margin-bottom: 1.2rem;
+  }
+  .tw-gate-items {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+    line-height: 2.2;
+    padding-left: 0.8rem;
+    border-left: 1px solid rgba(155,109,255,0.3);
+  }
+  .tw-gate-actions {
+    display: flex; gap: 2rem; align-items: center;
+  }
+  .tw-btn-continue {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: none;
+    border: 1px solid rgba(155,109,255,0.25);
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: border-color 0.25s, color 0.25s;
+  }
+  .tw-btn-continue:hover {
+    border-color: var(--purple);
+    color: var(--accent);
+  }
+  .tw-btn-back {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    background: none; border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .tw-btn-back:hover { color: var(--text-dim); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .delay-1 { animation-delay: 0.2s; }
+  .delay-2 { animation-delay: 0.32s; }
+  .delay-3 { animation-delay: 0.44s; }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 3rem;
+    border-top: 1px solid var(--border);
+    background: rgba(12,10,18,0.88);
+    backdrop-filter: blur(10px);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    nav { padding: 1.2rem 1.5rem; }
+    nav ul { gap: 1.4rem; }
+    .page { padding: 11rem 1.4rem 6rem; }
+    .status-bar { padding: 0.6rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="wordmark">voodoo<span>saurus</span></a>
+  <ul>
+    <li><a href="index.html">build</a></li>
+    <li><a href="writing.html" class="active">think</a></li>
+    <li><a href="index.html">now</a></li>
+  </ul>
+</nav>
+
+<div class="page">
+
+  <!-- LIST VIEW -->
+  <div id="list-view">
+    <header class="page-header">
+      <div class="page-label">writing</div>
+      <h1 class="page-title">in the margins.</h1>
+      <p class="page-note">personal, unpolished, just text.</p>
+    </header>
+
+    <div class="post-list">
+
+      <!-- Post 1 -->
+      <div class="post-entry delay-1">
+        <a href="#" class="post-link" onclick="openGate('post-1'); return false;">
+          <div class="post-mood mood--tender">
+            <div class="mood-dot"></div>
+            <span class="mood-label">tender</span>
+          </div>
+          <h2 class="post-title"><em>i thought there wouldn't be much to go on for</em> — but i really like prawns</h2>
+          <p class="post-excerpt"></p>
+          <div class="post-footer">
+            <span class="post-date">march 2026</span>
+            <span class="post-arrow">→</span>
+          </div>
+          <div class="tw-inline">
+            <span class="tw-inline-label">cw —</span>
+            <span class="tw-inline-items">suicidal ideation, grief</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="list-end">— that's everything so far —</div>
+    </div>
+  </div>
+
+  <!-- SINGLE POST VIEW -->
+  <div id="post-1" class="post-single">
+    <button class="post-single-back" onclick="closePost()">← back to writing</button>
+
+    <div class="post-single-mood mood--tender">
+      <div class="mood-dot"></div>
+      <span class="mood-label">tender</span>
+    </div>
+
+    <h1 class="post-single-title">
+      <em>i thought there wouldn't be much to go on for</em> but i really like prawns
+    </h1>
+    <div class="post-single-date">march 2026</div>
+
+    <div class="post-body">
+      <p>many (some?) years ago, i had decided that i wouldn't need to go beyond 28 if i wasn't happy by the time i got there.</p>
+
+      <p>i turn 28 this weekend.</p>
+
+      <p>and i'm actually doing worse than i was for the last couple of months. insane, really, but honestly, funnier.</p>
+
+      <p>is this a sign?</p>
+
+      <p>i don't think i will act on it. there's a lot of work to do. there's weddings to attend, there's EMIs to pay up. there's fun projects to complete. there's people who will cry if i'm gone. i care too much to put them through this. perhaps they're right and healing does happen in waves. you think you've learned to hold your ground, until the sand beneath your feet moves away. you're pulled further into the water and honestly, sometimes, it's far less resistance to just give in.</p>
+
+      <p>i miss being in Goa. it helped me feel so connected to this world even when i was sober. i miss the feeling that there's so much more life, so much more time, so much more hope.</p>
+
+      <p>i had grand plans for Q1 of this year, which are now in a mess, half-baked, semi-fried, but i cannot give up on them. i need to build that trust in myself.</p>
+
+      <p>sometimes you choose to go on, simply because its easier than the other choice. you live in whatever capacity you can. the reasons come to you once in a while. first is the body — maybe you need more Zinc and Magnesium, maybe you needed a snack, maybe you just needed some sleep. caring for the body relays such wondrous effects to the brain, it really baffled me the first time i tried it long enough for it to work.</p>
+
+      <p>then, comes the soul — friends who love you, friends who get visibly sad if they see you hurting, friends who hold you and everything feels worthwhile for a bit, hearing your family laugh, your lover burying their hands in your hair. people that truly make you feel you're a part of their existence at the very core.</p>
+
+      <p>i ate butter garlic prawns, they truly brought me back to life. i keep thinking of them and the thought alone generates some serotonin in me.</p>
+
+      <p>mildly funny that out of everything, i chose this to be the first blogpost. emo kid for life, truly. please don't report this to mental health personnel/facilities. i promise i'll be fine.</p>
+    </div>
+
+    <div class="post-end-mark">∎</div>
+
+    <div class="post-resource">
+      if you're going through something heavy right now —<br>
+      <a href="https://icallhelpline.org" target="_blank" rel="noopener">iCall</a> (India) &nbsp;·&nbsp; 9152987821 &nbsp;·&nbsp; available Mon–Sat
+    </div>
+  </div>
+
+</div>
+
+<!-- TRIGGER WARNING GATE -->
+<div class="tw-gate" id="tw-gate">
+  <div class="tw-gate-inner">
+    <div class="tw-gate-label">content note</div>
+    <p class="tw-gate-text">this piece contains the following themes.</p>
+    <div class="tw-gate-items">
+      suicidal ideation<br>
+      grief / loss
+    </div>
+    <div class="tw-gate-actions">
+      <button class="tw-btn-continue" onclick="continueToPost()">continue reading</button>
+      <button class="tw-btn-back" onclick="closeGate()">take me back</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>voodoosaurus.com — writing</span>
+  <span>read only</span>
+</div>
+
+<script>
+  let pendingPostId = null;
+
+  function openGate(id) {
+    pendingPostId = id;
+    document.getElementById('tw-gate').classList.add('open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeGate() {
+    document.getElementById('tw-gate').classList.remove('open');
+    pendingPostId = null;
+  }
+
+  function continueToPost() {
+    document.getElementById('tw-gate').classList.remove('open');
+    if (pendingPostId) openPost(pendingPostId);
+  }
+
+  function openPost(id) {
+    document.getElementById('list-view').style.display = 'none';
+    const post = document.getElementById(id);
+    post.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closePost() {
+    document.querySelectorAll('.post-single').forEach(p => p.classList.remove('active'));
+    document.getElementById('list-view').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

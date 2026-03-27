@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>voodoosaurus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Unbounded:wght@200;300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0b0a10;
+    --bg2:       #100f18;
+    --bg3:       #16141f;
+    --border:    rgba(140, 100, 220, 0.13);
+    --purple:    #9b6dff;
+    --purple-dim:#6a3fcf;
+    --text:      #e8e2f5;
+    --text-dim:  #8a7faa;
+    --text-faint:#3d3660;
+    --accent:    #c084fc;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.6;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20vh; left: 50%;
+    transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, rgba(107, 63, 207, 0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.4rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11, 10, 16, 0.75);
+    backdrop-filter: blur(14px);
+  }
+
+  .wordmark {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 200; font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    color: var(--text); text-decoration: none;
+  }
+  .wordmark span { color: var(--purple); }
+
+  nav ul { list-style: none; display: flex; gap: 2.5rem; }
+  nav ul a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim); text-decoration: none;
+    transition: color 0.2s; cursor: pointer;
+    background: none; border: none; padding: 0;
+  }
+  nav ul a:hover { color: var(--accent); }
+  nav ul a.active { color: var(--accent); }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    min-height: 75vh;
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 3rem 5rem;
+  }
+
+  .hero-label {
+    font-size: 0.65rem; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--text-faint);
+    margin-bottom: 1.2rem;
+  }
+
+  .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 1.0; color: var(--text); max-width: 14ch;
+  }
+  .hero-title em { font-style: italic; color: var(--accent); }
+
+  .hero-sub {
+    margin-top: 1rem; font-size: 0.9rem;
+    color: var(--text-dim); letter-spacing: 0.06em;
+    max-width: 44ch; line-height: 1.9;
+    border-left: 1px solid var(--purple-dim);
+    padding-left: 1.2rem;
+  }
+
+  .scroll-hint {
+    position: absolute; bottom: 2.5rem; right: 3rem;
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 0.62rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+  .scroll-hint::before {
+    content: ''; display: block;
+    width: 30px; height: 1px; background: var(--text-faint);
+  }
+
+  /* ── MAIN ── */
+  main { position: relative; z-index: 1; padding: 0 3rem 8rem; }
+
+  /* ── SECTION PANEL ── */
+  .section-panel {
+    display: none;
+    margin-bottom: 5rem;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .section-panel.open { display: block; }
+  .section-panel.visible { opacity: 1; transform: translateY(0); }
+
+  .section-header {
+    display: flex; align-items: baseline; gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .section-tag {
+    font-size: 0.72rem; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--purple);
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .section-close {
+    font-size: 0.65rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-faint);
+    cursor: pointer; background: none; border: none;
+    font-family: 'DM Mono', monospace; transition: color 0.2s;
+  }
+  .section-close:hover { color: var(--accent); }
+
+  /* ── GRID ── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    position: relative;
+    background: var(--bg2); border: 1px solid var(--border);
+    overflow: hidden; cursor: pointer;
+    text-decoration: none; display: block;
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.35s, background 0.35s;
+  }
+  .card.visible { opacity: 1; transform: translateY(0); }
+  .card:hover { border-color: rgba(155,109,255,0.4); background: var(--bg3); }
+  .card:hover .card-glow { opacity: 1; }
+  .card:hover .card-arrow { transform: translate(3px,-3px); }
+
+  .card--wide   { grid-column: span 7; }
+  .card--narrow { grid-column: span 5; }
+  .card--half   { grid-column: span 6; }
+  .card--full   { grid-column: span 12; }
+
+  .card-glow {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 0%, rgba(155,109,255,0.08) 0%, transparent 65%);
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+  }
+
+  .card-inner { padding: 2.2rem 2rem 1.8rem; height: 100%; display: flex; flex-direction: column; }
+
+  .card-type {
+    font-size: 0.72rem; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--purple);
+    margin-bottom: 1.4rem;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .card-type::before {
+    content: ''; display: inline-block;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--purple); box-shadow: 0 0 6px var(--purple);
+  }
+
+  .card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.3rem, 2.2vw, 1.75rem);
+    line-height: 1.2; color: var(--text);
+    margin-bottom: 0.9rem; flex: 1;
+  }
+
+  .card-desc {
+    font-size: 0.82rem; line-height: 1.85;
+    color: var(--text-dim); margin-bottom: 1.8rem;
+  }
+
+  .card-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--border); padding-top: 1rem;
+  }
+  .card-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.7rem; letter-spacing: 0.1em;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--border);
+    color: var(--text-faint); border-radius: 2px;
+  }
+  .card-arrow { font-size: 0.85rem; color: var(--purple-dim); transition: transform 0.25s; }
+
+  /* visual strip */
+  .card--visual .card-visual-strip {
+    height: 120px;
+    background: linear-gradient(135deg, #1a1628 0%, #0f0d1a 100%);
+    display: flex; align-items: center; justify-content: center;
+    border-bottom: 1px solid var(--border); overflow: hidden;
+  }
+  .card--visual .card-visual-strip svg { opacity: 0.55; }
+
+  /* work strip */
+  .featured-strip { display: flex; gap: 1.5px; overflow-x: auto; scrollbar-width: none; }
+  .featured-strip::-webkit-scrollbar { display: none; }
+  .strip-card {
+    flex: 0 0 300px; background: var(--bg2);
+    border: 1px solid var(--border); padding: 1.8rem 1.6rem;
+    cursor: pointer;
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.3s, background 0.3s;
+  }
+  .strip-card.visible { opacity: 1; transform: translateY(0); }
+  .strip-card:hover { border-color: rgba(155,109,255,0.35); background: var(--bg3); }
+  .strip-card-num {
+    font-size: 1.5rem; font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; color: var(--text-faint);
+    line-height: 1; margin-bottom: 0.8rem;
+  }
+  .strip-card-title { font-size: 0.82rem; color: var(--text); margin-bottom: 0.5rem; }
+  .strip-card-sub { font-size: 0.72rem; color: var(--text-dim); line-height: 1.7; }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 3rem;
+    border-top: 1px solid var(--border);
+    background: rgba(11,10,16,0.85); backdrop-filter: blur(10px);
+    font-size: 0.72rem; letter-spacing: 0.12em; color: var(--text-faint);
+  }
+  .status-dot {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: #4ade80; box-shadow: 0 0 6px #4ade80; margin-right: 0.5rem;
+    animation: pulse 2.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── ANIMATIONS ── */
+  .fade-up { opacity: 0; transform: translateY(22px); animation: fadeUp 0.7s ease forwards; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.22s; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 1.2rem 1.5rem; }
+    nav ul { gap: 1.5rem; }
+    .hero { padding: 0 1.5rem 4rem; }
+    main { padding: 0 1.5rem 6rem; }
+    .status-bar { padding: 0.6rem 1.5rem; }
+    .card--wide, .card--narrow, .card--half { grid-column: span 12; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="wordmark">voodoo<span>saurus</span></a>
+  <ul>
+    <li><a onclick="toggleSection('build')" id="nav-build">build</a></li>
+    <li><a href="writing.html"              id="nav-think">think</a></li>
+    <li><a onclick="toggleSection('now')"   id="nav-now">now</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <h1 class="hero-title fade-up delay-1">
+    things built,<br><em>noticed,</em><br>and wondered at.
+  </h1>
+  <p class="hero-sub fade-up delay-2">
+    philosophy of systems<br>
+  
+  </p>
+</section>
+
+<main>
+
+  <!-- ── BUILD ── -->
+  <section class="section-panel" id="section-build">
+    <div class="section-header">
+      <span class="section-tag">Build</span>
+      <div class="section-line"></div>
+      <button class="section-close" onclick="toggleSection('build')">close ×</button>
+    </div>
+    
+    <div class="projects-grid">
+      <a href="#" class="card card--narrow">
+        <div class="card-inner">
+          <div class="card-glow"></div>
+          <span class="card-type">Interactive · Essay</span>
+          <h2 class="card-title">On symmetry breaking in Fluid systems</h2>
+          <p class="card-desc">Why identical designs give scattered results — and why that test validation isn't working.</p>
+          <div class="card-meta">
+            <div class="card-tags">
+              <span class="tag">Dymola</span>
+              <span class="tag">Fluid Dynamics</span>
+              <span class="tag">Test Correlation</span>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ── NOW ── -->
+  <section class="section-panel" id="section-now">
+    <div class="section-header">
+      <span class="section-tag">Now</span>
+      <div class="section-line"></div>
+      <button class="section-close" onclick="toggleSection('now')">close ×</button>
+    </div>
+    <div class="projects-grid">
+      <a href="#" class="card card--full">
+        <div class="card-inner">
+          <div class="card-glow"></div>
+          <span class="card-type">READING · March 2026</span>
+          <h2 class="card-title">Seeing like a State by James C. Scott</h2>
+          <p class="card-desc">How certain schemes to improve the human condition have failed </p>
+          <div class="card-meta">
+            <div class="card-tags">
+              <span class="tag">Design</span>
+            </div>
+          </div>
+        </div>
+      </a>
+      <a href="#" class="card card--full">
+        <div class="card-inner">
+          <div class="card-glow"></div>
+          <span class="card-type">BUILDING · March 2026</span>
+          <h2 class="card-title">A dashboard that does cool things</h2>
+          <p class="card-desc">Analyzing and optimizing for large datasets. </p>
+          <div class="card-meta">
+            <div class="card-tags">
+              <span class="tag">Data Science</span>
+              <span class="tag">ML</span>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<div class="status-bar">
+  <span><span class="status-dot"></span>voodoosaurus.com — v0.1 — work in progress</span>
+</div>
+
+<script>
+  const sections = ['build', 'now'];
+
+  function toggleSection(id) {
+    const panel = document.getElementById('section-' + id);
+    const navEl = document.getElementById('nav-' + id);
+    const isOpen = panel.classList.contains('open');
+
+    // close all
+    sections.forEach(s => {
+      document.getElementById('section-' + s).classList.remove('open', 'visible');
+      const n = document.getElementById('nav-' + s);
+      if (n) n.classList.remove('active');
+    });
+
+    if (!isOpen) {
+      panel.classList.add('open');
+      navEl.classList.add('active');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          panel.classList.add('visible');
+          panel.querySelectorAll('.card, .strip-card').forEach((el, i) => {
+            setTimeout(() => el.classList.add('visible'), i * 80);
+          });
+        });
+      });
+      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
+  }
+</script>
+</body>
+</html>
